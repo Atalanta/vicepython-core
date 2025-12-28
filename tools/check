@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Running ruff check..."
+uv run ruff check .
+
+echo "Running ruff format check..."
+uv run ruff format --check .
+
+echo "Running mypy..."
+uv run mypy --strict src/
+
+echo "Running pytest..."
+uv run pytest
+
+echo "All checks passed!"
