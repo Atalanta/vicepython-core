@@ -47,19 +47,6 @@ match result:
         # Handle failure - can't forget this
 ```
 
-## map_err
-
-**What it is:** Transform the error type while leaving Ok unchanged.
-
-```python
-# Not included
-result.map_err(lambda e: f"Error: {e}")
-```
-
-**Why omitted:** Useful but less common early on. It tends to appear when you have layered modules and want to normalize errors at seams between modules.
-
-**Philosophy:** Add it when that pain shows up in real use, not preemptively. The library remains minimal until concrete need emerges.
-
 ## collect_all_errors
 
 **What it is:** Collect multiple Results, gathering all errors instead of failing fast.
@@ -124,6 +111,21 @@ match result:
         # value is automatically narrowed to T
         use(value)
 ```
+
+## Promoted from omission
+
+Some features start as deliberate omissions but get promoted to the library when real usage pressure demonstrates clear need.
+
+### map_err
+
+Initially omitted as "useful but less common early on," `map_err` was added when VP0/VP1 code (pgctl and similar tools) showed consistent boilerplate: nested match statements used solely to translate error types at module boundaries.
+
+The promotion criteria:
+1. Observed repeatedly in real code (not hypothetical)
+2. Boilerplate hurts readability without adding clarity
+3. The helper is boring and explicit (no hidden control flow)
+
+This demonstrates the library's evolution model: start minimal, add features only when concrete usage demonstrates the need.
 
 ## Philosophy
 

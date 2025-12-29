@@ -7,7 +7,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from vicepython_core import Err, Ok, Result
-from vicepython_core.result import and_then, collect, map_ok
+from vicepython_core.result import and_then, collect, discard_ok_value, map_err, map_ok
 
 
 # Example tests for map_ok
@@ -121,6 +121,56 @@ def test_collect_first_err() -> None:
             assert error == "first"
 
 
+# Example tests for map_err
+def test_map_err_with_ok() -> None:
+    """map_err leaves Ok unchanged."""
+    result: Result[int, ValueError] = Ok(5)
+    mapped = map_err(result, lambda e: str(e))
+
+    match mapped:
+        case Ok(value):
+            assert value == 5
+        case Err():
+            raise AssertionError("Should be Ok")
+
+
+def test_map_err_with_err() -> None:
+    """map_err transforms Err value."""
+    result: Result[int, ValueError] = Err(ValueError("bad"))
+    mapped = map_err(result, lambda e: f"Error: {e}")
+
+    match mapped:
+        case Ok():
+            raise AssertionError("Should be Err")
+        case Err(error):
+            assert error == "Error: bad"
+
+
+# Example tests for discard_ok_value
+def test_discard_ok_value_with_ok() -> None:
+    """discard_ok_value converts Ok(_) to Ok(None)."""
+    result: Result[str, str] = Ok("some output")
+    discarded = discard_ok_value(result)
+
+    match discarded:
+        case Ok(value):
+            assert value is None
+        case Err():
+            raise AssertionError("Should be Ok")
+
+
+def test_discard_ok_value_with_err() -> None:
+    """discard_ok_value leaves Err unchanged."""
+    result: Result[str, str] = Err("error")
+    discarded = discard_ok_value(result)
+
+    match discarded:
+        case Ok():
+            raise AssertionError("Should be Err")
+        case Err(error):
+            assert error == "error"
+
+
 # Hypothesis property tests
 @given(st.integers(), st.text())
 def test_property_map_ok_preserves_err(value: int, error: str) -> None:
@@ -222,3 +272,59 @@ def test_property_collect_empty_is_ok() -> None:
             assert values == []
         case Err():
             raise AssertionError("Should be Ok")
+
+
+@given(st.integers(), st.text())
+def test_property_map_err_preserves_ok(value: int, error_msg: str) -> None:
+    """map_err on Ok returns the same Ok without calling function."""
+    result: Result[int, str] = Ok(value)
+
+    def should_not_be_called(e: str) -> str:
+        raise AssertionError("Function should not be called on Ok")
+
+    mapped = map_err(result, should_not_be_called)
+
+    match mapped:
+        case Ok(v):
+            assert v == value
+        case Err():
+            raise AssertionError("Should remain Ok")
+
+
+@given(st.text())
+def test_property_map_err_transforms_err(error: str) -> None:
+    """map_err on Err applies the function to the error."""
+    result: Result[int, str] = Err(error)
+    mapped = map_err(result, lambda e: f"transformed: {e}")
+
+    match mapped:
+        case Err(new_error):
+            assert new_error == f"transformed: {error}"
+        case Ok():
+            raise AssertionError("Should remain Err")
+
+
+@given(st.integers(), st.text())
+def test_property_discard_ok_value_preserves_err(value: int, error: str) -> None:
+    """discard_ok_value on Err returns the same Err."""
+    result: Result[int, str] = Err(error)
+    discarded = discard_ok_value(result)
+
+    match discarded:
+        case Err(err):
+            assert err == error
+        case Ok():
+            raise AssertionError("Should remain Err")
+
+
+@given(st.integers())
+def test_property_discard_ok_value_discards_any_ok_value(value: int) -> None:
+    """discard_ok_value on Ok returns Ok(None) regardless of input value."""
+    result: Result[int, str] = Ok(value)
+    discarded = discard_ok_value(result)
+
+    match discarded:
+        case Ok(v):
+            assert v is None
+        case Err():
+            raise AssertionError("Should remain Ok")

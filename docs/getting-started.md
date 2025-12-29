@@ -122,4 +122,6 @@ You now know:
 - How to handle them with pattern matching
 - How to convert from Optional and exceptions
 
-Continue to the how-to guides to learn specific tasks like chaining operations and collecting multiple results.
+**Important:** Before writing complex code, read [Pattern matching best practices](how-to/pattern-matching-best-practices.md) to avoid common pitfalls with nested matches and mypy --strict.
+
+Continue to the other how-to guides to learn specific tasks like chaining operations and collecting multiple results.

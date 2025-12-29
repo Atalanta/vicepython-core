@@ -1,7 +1,8 @@
 """Helper functions for working with Result types.
 
 All functions use structural pattern matching and are pure (no side effects).
-Import these explicitly: `from vicepython_core.result import map_ok, and_then, collect`
+Import these explicitly:
+    `from vicepython_core.result import map_ok, and_then, collect, map_err, discard_ok_value`
 """
 
 from collections.abc import Callable, Sequence
@@ -75,3 +76,53 @@ def collect[T, E](results: Sequence[Result[T, E]]) -> Result[list[T], E]:
                 return result
 
     return Ok(collected_values)
+
+
+def map_err[T, E1, E2](result: Result[T, E1], f: Callable[[E1], E2]) -> Result[T, E2]:
+    """Apply a function to the error inside Err, leaving Ok unchanged.
+
+    Use at boundaries to translate error types between layers.
+
+    Args:
+        result: The Result to map over
+        f: Function to apply to the Err value
+
+    Returns:
+        Result[T, E2]: Original Ok, or Err with transformed error
+
+    Example:
+        >>> from vicepython_core import Ok, Err
+        >>> result: Result[int, ValueError] = Err(ValueError("bad input"))
+        >>> mapped = map_err(result, lambda e: str(e))
+        >>> # Result[int, str] = Err("bad input")
+    """
+    match result:
+        case Ok(value=v):
+            return Ok(v)
+        case Err(error=e):
+            return Err(f(e))
+
+
+def discard_ok_value[T, E](result: Result[T, E]) -> Result[None, E]:
+    """Discard the Ok value, replacing it with None.
+
+    Use for command-like operations where success matters but the value doesn't.
+    Does NOT suppress errors - Err values pass through unchanged.
+
+    Args:
+        result: The Result to transform
+
+    Returns:
+        Result[None, E]: Ok(None) if input was Ok, otherwise original Err
+
+    Example:
+        >>> from vicepython_core import Ok, Err
+        >>> result: Result[str, str] = Ok("output from command")
+        >>> discarded = discard_ok_value(result)
+        >>> # Result[None, str] = Ok(None)
+    """
+    match result:
+        case Ok():
+            return Ok(None)
+        case Err(error=e):
+            return Err(e)
